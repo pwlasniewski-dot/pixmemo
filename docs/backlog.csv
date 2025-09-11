@@ -1,0 +1,16 @@
+Epic;User Story;Acceptance Criteria;Priority;Sprint/Day
+Auth;Jako fotograf chcę się zalogować, aby mieć dostęp do panelu;"Formularz e-mail/hasło; walidacja; po sukcesie redirect do /dashboard/photographer";High;D1-D3
+Photographers Listing;Jako klient chcę zobaczyć fotografów dostępnych dziś;"Lista z filtrem miasta i daty; karty z ceną 'od', ratingiem; kliknięcie prowadzi do profilu";High;D8
+Profile;Jako klient chcę zobaczyć profil fotografa i pakiety;"Opis, portfolio x6, pakiety z ceną; przycisk 'Rezerwuj' przechodzi do booking";High;D9
+Availability;Jako fotograf chcę ustawiać dostępność;"Widok slotów godzinowych; zapis do BE; klient widzi tylko sloty wolne";High;D10-D16
+Booking;Jako klient chcę zarezerwować termin i podać adres;"Form z walidacją; podsumowanie ceny (rabat+dojazd); status pending";Critical;D11-D14
+Emails;Jako klient/fotograf chcę dostać e-mail potwierdzający;Po utworzeniu rezerwacji wysyła się e-mail (sandbox ok);High;D12
+Payments-Stripe;Jako klient chcę zapłacić kartą/Apple/Google Pay;"Stripe Elements/PRB; webhook potwierdza; booking=confirmed";Critical;D22-D23
+Payments-P24;Jako klient chcę zapłacić BLIKIEM;"Redirect do P24; webhook potwierdza; booking=confirmed";High;D24
+Reviews;Jako klient chcę dodać opinię po sesji;"Po statusie done; ocena 1–5 + komentarz; aktualizacja rating_avg";Medium;D19-D21
+Admin-Verify;Jako admin chcę akceptować fotografów;"Lista oczekujących; approve/reject; po approve widoczny publicznie";Critical;D17
+Admin-Bookings;Jako admin widzę rezerwacje i statusy;"Tabela z filtrami; detail booking; ręczna zmiana statusu (awaryjnie)";High;D18
+PWA;Jako użytkownik chcę dodać aplikację do ekranu;"manifest, SW; Android 'Add to Home Screen' działa";Medium;D5
+Android-Build;Jako właściciel chcę udostępnić appkę w Google Play (closed testing);Capacitor build, upload AAB, testers lista, link do instalacji;High;D26
+Legal;Jako właściciel chcę mieć regulamin i RODO;"Terms/privacy dostępne pod /legal; checkboxy akceptacji";Critical;D27-D28
+Marketing;Jako właściciel chcę wystartować z reklamą;"Landing gotowy; piksel/GA (jeśli chcesz); kampania FB/IG odpalona";High;D29-D30
