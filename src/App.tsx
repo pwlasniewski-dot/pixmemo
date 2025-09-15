@@ -1,6 +1,8 @@
 import { Link, NavLink, Outlet } from "react-router-dom";
+import { useAuth } from "@/hooks/useAuth";
 
 export default function App() {
+  const { user, logout } = useAuth();
   const navLink =
     "px-3 py-2 rounded-lg text-sm font-medium hover:bg-zinc-100 transition";
   const active = ({ isActive }: { isActive: boolean }) =>
@@ -12,12 +14,19 @@ export default function App() {
         <div className="mx-auto max-w-6xl px-4 py-3 flex items-center gap-4">
           <Link to="/" className="font-bold text-xl">PixMemo</Link>
           <nav className="ml-auto flex items-center gap-1">
-            <NavLink to="/photographers" className={active}>
-              Fotografowie
-            </NavLink>
-            <NavLink to="/auth/login" className={active}>
-              Zaloguj
-            </NavLink>
+            <NavLink to="/photographers" className={active}>Fotografowie</NavLink>
+            <NavLink to="/legal/terms" className={active}>Regulamin</NavLink>
+            {user?.role === "photographer" && (
+              <NavLink to="/dashboard/photographer" className={active}>Panel fotografa</NavLink>
+            )}
+            {user?.role === "admin" && (
+              <NavLink to="/dashboard/admin" className={active}>Admin</NavLink>
+            )}
+            {!user ? (
+              <NavLink to="/auth/login" className={active}>Zaloguj</NavLink>
+            ) : (
+              <button onClick={logout} className={navLink}>Wyloguj</button>
+            )}
           </nav>
         </div>
       </header>
