@@ -21,6 +21,9 @@ export default function PhotoCard({ p }: { p: Photographer }) {
           )}
         </div>
         <div className="text-sm text-zinc-600">{p.city} · od {p.price_from_pln} PLN</div>
+        {p.short_bio && (
+          <p className="text-sm text-zinc-500">{p.short_bio}</p>
+        )}
         <RatingStars value={p.rating_avg} count={p.rating_count} />
         <div className="pt-2 flex gap-2">
           <Link

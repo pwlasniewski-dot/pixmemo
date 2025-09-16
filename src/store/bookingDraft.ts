@@ -1,6 +1,13 @@
+import type { BookingStatus } from "@/api/client";
+
 export type BookingDraft = {
+  bookingId: string;
+  status: BookingStatus;
+  trackToken?: string;
+  clientEmail: string;
   photographerId: string;
   photographerName: string;
+  photographerCity?: string;
   pkgId: string;
   pkgName: string;
   date: string;
@@ -8,7 +15,7 @@ export type BookingDraft = {
   address: { street: string; postal: string; city: string };
   distanceKm: number;
   discountPct: number;
-  price: { base: number; travel: number; total: number };
+  price: { base: number; travel: number; discount: number; total: number };
 };
 
 const KEY = "pm_booking";

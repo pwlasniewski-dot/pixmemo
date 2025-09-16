@@ -1,48 +1,73 @@
 // src/api/client.ts
 // Helpery do komunikacji z backendem (MVP/dev-friendly)
 
+import type { Photographer } from "@/types";
+
 const API = import.meta.env.VITE_API_URL || "http://localhost:5174";
 
-// ==== Typy (luźne, żeby nie blokować pracy) ====
-export type Photographer = {
-  id: string;
-  full_name?: string;
-  city?: string;
-  price_from_pln?: number;
-  rating_avg?: number;
-  rating_count?: number;
-  primary_photo_url?: string;
-};
-
 export type PhotographerQuery = { city?: string; date?: string };
+
+export type BookingStatus = "pending" | "awaiting_payment" | "confirmed" | "done" | "cancelled";
 
 export type Booking = {
   id: string;
   clientEmail: string;
   photographerId: string;
   packageId: string;
-  date: string;  // yyyy-mm-dd
-  time: string;  // HH:mm
+  date: string; // yyyy-mm-dd
+  time: string; // HH:mm
   address: { street: string; postal: string; city: string };
   priceFinalPln: number;
-  status: "pending" | "awaiting_payment" | "confirmed" | "done" | "cancelled";
+  status: BookingStatus;
   trackToken?: string;
+  createdAt?: string;
+  updatedAt?: string;
 };
 
+type HttpOptions = RequestInit & { timeoutMs?: number };
+
+async function http<T>(path: string, { timeoutMs = 8000, ...init }: HttpOptions = {}): Promise<T> {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    const res = await fetch(path, { ...init, signal: controller.signal });
+    if (!res.ok) {
+      let message = `Błąd (${res.status})`;
+      try {
+        const data = await res.json();
+        if (data?.error) message = data.error;
+      } catch {}
+      throw new Error(message);
+    }
+    return res.json() as Promise<T>;
+  } catch (error) {
+    if (error instanceof DOMException && error.name === "AbortError") {
+      throw new Error("Przekroczono limit czasu połączenia");
+    }
+    if (error instanceof TypeError) {
+      throw new Error("Błąd sieci – sprawdź połączenie");
+    }
+    throw error as Error;
+  } finally {
+    clearTimeout(timeoutId);
+  }
+}
+
+function buildUrl(path: string) {
+  return `${API}${path}`;
+}
+
 // ==== Fotografowie (public) ====
-export async function getPhotographers(q: PhotographerQuery): Promise<Photographer[]> {
+export async function getPhotographers(q: PhotographerQuery = {}): Promise<Photographer[]> {
   const qs = new URLSearchParams();
   if (q.city) qs.set("city", q.city);
   if (q.date) qs.set("date", q.date);
-  const r = await fetch(`${API}/photographers?${qs.toString()}`);
-  if (!r.ok) throw new Error("Nie udało się pobrać fotografów");
-  return r.json();
+  const suffix = qs.toString();
+  return http<Photographer[]>(buildUrl(`/photographers${suffix ? `?${suffix}` : ""}`));
 }
 
 export async function getPhotographer(id: string): Promise<Photographer> {
-  const r = await fetch(`${API}/photographers/${encodeURIComponent(id)}`);
-  if (!r.ok) throw new Error("Nie udało się pobrać profilu fotografa");
-  return r.json();
+  return http<Photographer>(buildUrl(`/photographers/${encodeURIComponent(id)}`));
 }
 
 // ==== Rezerwacje (klient) ====
@@ -54,49 +79,52 @@ export async function createBooking(payload: {
   time: string;
   address: { street: string; postal: string; city: string };
   price_final_pln: number;
-}) {
-  const r = await fetch(`${API}/bookings`, {
+}): Promise<{ booking_id: string; status: string; track_token?: string }> {
+  return http(buildUrl("/bookings"), {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(payload),
   });
-  if (!r.ok) throw new Error(`Booking failed: ${r.status}`);
-  // { booking_id, status, track_token }
-  return r.json() as Promise<{ booking_id: string; status: string; track_token?: string }>;
+}
+
+export async function getBooking(id: string): Promise<Booking> {
+  return http<Booking>(buildUrl(`/bookings/${encodeURIComponent(id)}`));
+}
+
+export async function updateBookingStatus(id: string, status: BookingStatus): Promise<Booking> {
+  return http<Booking>(buildUrl(`/bookings/${encodeURIComponent(id)}/status`), {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ status }),
+  });
 }
 
 export async function getClientBookings(email: string): Promise<Booking[]> {
-  const r = await fetch(`${API}/client/bookings?email=${encodeURIComponent(email)}`);
-  if (!r.ok) throw new Error("Nie udało się pobrać rezerwacji klienta");
-  return r.json();
+  return http<Booking[]>(buildUrl(`/client/bookings?email=${encodeURIComponent(email)}`));
 }
 
 // ==== Rezerwacje (fotograf) ====
 export async function getPhotographerBookings(photographerId: string): Promise<Booking[]> {
-  const r = await fetch(`${API}/photographer/bookings?photographerId=${encodeURIComponent(photographerId)}`);
-  if (!r.ok) throw new Error("Nie udało się pobrać rezerwacji fotografa");
-  return r.json();
+  return http<Booking[]>(
+    buildUrl(`/photographer/bookings?photographerId=${encodeURIComponent(photographerId)}`)
+  );
 }
 
 // ==== LIVE (mapa) ====
 export async function postLiveLocation(token: string, lat: number, lng: number) {
-  const r = await fetch(`${API}/live/${token}`, {
+  return http(buildUrl(`/live/${token}`), {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ lat, lng }),
   });
-  if (!r.ok) throw new Error("Live location post failed");
-  return r.json();
 }
 
 export async function getLiveOnce(token: string) {
-  const r = await fetch(`${API}/live/${token}`);
-  if (!r.ok) throw new Error("Live location read failed");
-  return r.json() as Promise<{ lat: number; lng: number; ts: number } | null>;
+  return http<{ lat: number; lng: number; ts: number } | null>(buildUrl(`/live/${token}`));
 }
 
 export function subscribeLiveSSE(token: string, onData: (pos: any) => void) {
-  const url = `${API}/live/${token}/stream`;
+  const url = buildUrl(`/live/${token}/stream`);
   const es = new EventSource(url);
   es.onmessage = (ev) => {
     try {

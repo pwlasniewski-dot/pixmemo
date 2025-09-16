@@ -6,11 +6,13 @@ import Spinner from "../components/Spinner";
 import { getAvgRating, listReviews } from "@/api/mock_reviews";
 import ReviewsList from "@/components/reviews/ReviewsList";
 import ReviewForm from "@/components/reviews/ReviewForm";
+import type { Photographer } from "@/types";
 
 export default function PhotographerPage() {
   const { id } = useParams();
   const [loading, setLoading] = useState(true);
-  const [p, setP] = useState<any>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [p, setP] = useState<Photographer | null>(null);
 
   // opinie
   const [avg, setAvg] = useState<{avg:number;count:number}>({avg:0, count:0});
@@ -23,17 +25,27 @@ export default function PhotographerPage() {
   };
 
   useEffect(() => {
+    if (!id) return;
     setLoading(true);
-    getPhotographer(id!).then((res) => {
-      setP(res);
-      setLoading(false);
-    });
+    setError(null);
+    getPhotographer(id)
+      .then((res) => {
+        setP(res);
+        setLoading(false);
+      })
+      .catch((err) => {
+        setError(err instanceof Error ? err.message : "Nie udało się pobrać danych");
+        setLoading(false);
+      });
   }, [id]);
 
   useEffect(() => { refreshReviews(); }, [id]);
 
   if (loading) return <Spinner />;
+  if (error) return <p className="text-red-600">{error}</p>;
   if (!p) return <p>Nie znaleziono fotografa.</p>;
+
+  const upcoming = p.availability?.find((d) => d.slots.length > 0);
 
   return (
     <section className="grid lg:grid-cols-3 gap-8">
@@ -72,15 +84,38 @@ export default function PhotographerPage() {
           )}
         </div>
 
+        <div className="space-y-3">
+          <p className="text-sm text-zinc-600 whitespace-pre-line">{p.bio || p.short_bio}</p>
+          <div className="text-sm text-zinc-500 space-y-1">
+            {p.languages && p.languages.length > 0 && (
+              <div>Języki: {p.languages.join(", ")}</div>
+            )}
+            {typeof p.travel_km === "number" && (
+              <div>Dojeżdża w promieniu ok. {p.travel_km} km</div>
+            )}
+            {upcoming && (
+              <div>Najbliższy dostępny termin: {upcoming.date}</div>
+            )}
+          </div>
+        </div>
+
         <div className="space-y-2">
           <h2 className="font-semibold">Pakiety</h2>
           <ul className="space-y-2">
-            {p.packages?.map((pk: any) => (
+            {p.packages?.map((pk) => (
               <li key={pk.id} className="flex items-center justify-between rounded-xl border p-3">
-                <div>{pk.name}</div>
+                <div>
+                  <div className="font-medium">{pk.name}</div>
+                  {pk.description && (
+                    <div className="text-xs text-zinc-500 mt-1">{pk.description}</div>
+                  )}
+                </div>
                 <div className="font-semibold">{pk.price_pln} PLN</div>
               </li>
             ))}
+            {(!p.packages || p.packages.length === 0) && (
+              <li className="text-sm text-zinc-500">Brak dodanych pakietów.</li>
+            )}
           </ul>
         </div>
 

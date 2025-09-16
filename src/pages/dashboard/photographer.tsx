@@ -1,15 +1,15 @@
 import { useEffect, useMemo, useState } from "react";
 import {
-  DaySlots,
-  PhotographerProfile,
-  loadMe,
-  saveMe,
-  upsertPackage,
-  deletePackage,
-  setDaySlots,
-  deleteDay,
-  updateProfile,
-} from "../../api/mock_photographer";
+  fetchPhotographerProfile,
+  updatePhotographerProfile,
+  savePhotographerPackage,
+  deletePhotographerPackage,
+  setPhotographerDaySlots,
+  deletePhotographerDay,
+  type PhotographerDashboardProfile,
+} from "@/api/photographerDashboard";
+import type { DayAvailability } from "@/types";
+import { useAuth } from "@/hooks/useAuth";
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
@@ -21,7 +21,10 @@ function Section({ title, children }: { title: string; children: React.ReactNode
 }
 
 export default function PhotographerDashboardPage() {
-  const [me, setMe] = useState<PhotographerProfile | null>(null);
+  const { token } = useAuth();
+  const [me, setMe] = useState<PhotographerDashboardProfile | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   // formy profilu
   const [fullName, setFullName] = useState("");
@@ -41,37 +44,51 @@ export default function PhotographerDashboardPage() {
   const [slots, setSlots] = useState<string[]>([]);
 
   useEffect(() => {
-    const m = loadMe();
-    setMe(m);
-    setFullName(m.full_name);
-    setCity(m.city);
-    setBio(m.bio);
-    setPhoto(m.primary_photo_url);
+    if (!token) return;
+    setLoading(true);
+    setError(null);
+    fetchPhotographerProfile(token)
+      .then((profile) => {
+        setMe(profile);
+        setFullName(profile.full_name);
+        setCity(profile.city);
+        setBio(profile.bio ?? "");
+        setPhoto(profile.primary_photo_url);
+        const today = profile.availability.find((d) => d.date === date);
+        setSlots(today?.slots ?? []);
+        setLoading(false);
+      })
+      .catch((err) => {
+        setError(err instanceof Error ? err.message : "Nie udało się pobrać profilu");
+        setLoading(false);
+      });
+  }, [token]);
 
-    const today = m.availability.find((d) => d.date === date);
-    setSlots(today?.slots ?? []);
-  }, []);
-
-  // odśwież slots po zmianie daty
   useEffect(() => {
     if (!me) return;
     const found = me.availability.find((d) => d.date === date);
     setSlots(found?.slots ?? []);
   }, [date, me]);
 
-  const addOrUpdatePkg = () => {
+  const addOrUpdatePkg = async () => {
+    if (!token || !me) return setError("Brak autoryzacji");
     if (!pkgName.trim() || pkgPrice <= 0) return alert("Podaj nazwę i cenę > 0.");
-    const list = upsertPackage({
-      id: editingId || undefined,
-      name: pkgName.trim(),
-      price_pln: Math.round(pkgPrice),
-      description: pkgDesc.trim() || undefined,
-    });
-    setMe((m) => (m ? { ...m, packages: list } : m));
-    setEditingId(null);
-    setPkgName("");
-    setPkgPrice(0);
-    setPkgDesc("");
+    setError(null);
+    try {
+      const list = await savePhotographerPackage(token, {
+        id: editingId || undefined,
+        name: pkgName.trim(),
+        price_pln: Math.round(pkgPrice),
+        description: pkgDesc.trim() || undefined,
+      });
+      setMe((m) => (m ? { ...m, packages: list } : m));
+      setEditingId(null);
+      setPkgName("");
+      setPkgPrice(0);
+      setPkgDesc("");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Nie udało się zapisać pakietu");
+    }
   };
 
   const editPkg = (id: string) => {
@@ -84,14 +101,20 @@ export default function PhotographerDashboardPage() {
     setPkgDesc(pk.description ?? "");
   };
 
-  const removePkg = (id: string) => {
-    const list = deletePackage(id);
-    setMe((m) => (m ? { ...m, packages: list } : m));
-    if (editingId === id) {
-      setEditingId(null);
-      setPkgName("");
-      setPkgPrice(0);
-      setPkgDesc("");
+  const removePkg = async (id: string) => {
+    if (!token || !me) return;
+    setError(null);
+    try {
+      const list = await deletePhotographerPackage(token, id);
+      setMe((m) => (m ? { ...m, packages: list } : m));
+      if (editingId === id) {
+        setEditingId(null);
+        setPkgName("");
+        setPkgPrice(0);
+        setPkgDesc("");
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Nie udało się usunąć pakietu");
     }
   };
 
@@ -108,26 +131,44 @@ export default function PhotographerDashboardPage() {
     setSlots((list) => list.filter((x) => x !== s));
   };
 
-  const saveDay = () => {
-    const list = setDaySlots(date, slots);
-    setMe((m) => (m ? { ...m, availability: list } : m));
+  const saveDay = async () => {
+    if (!token || !me) return;
+    setError(null);
+    try {
+      const list = await setPhotographerDaySlots(token, date, slots);
+      setMe((m) => (m ? { ...m, availability: list } : m));
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Nie udało się zapisać dostępności");
+    }
   };
 
-  const deleteThisDay = () => {
-    const list = deleteDay(date);
-    setMe((m) => (m ? { ...m, availability: list } : m));
-    setSlots([]);
+  const deleteThisDay = async () => {
+    if (!token || !me) return;
+    setError(null);
+    try {
+      const list = await deletePhotographerDay(token, date);
+      setMe((m) => (m ? { ...m, availability: list } : m));
+      setSlots([]);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Nie udało się usunąć dnia");
+    }
   };
 
-  const saveProfile = () => {
-    const next = updateProfile({
-      full_name: fullName.trim(),
-      city: city.trim(),
-      bio: bio.trim(),
-      primary_photo_url: photo.trim(),
-    });
-    setMe(next);
-    alert("Zapisano profil ✅");
+  const saveProfile = async () => {
+    if (!token || !me) return;
+    setError(null);
+    try {
+      const next = await updatePhotographerProfile(token, {
+        full_name: fullName.trim(),
+        city: city.trim(),
+        bio: bio.trim(),
+        primary_photo_url: photo.trim(),
+      });
+      setMe(next);
+      alert("Zapisano profil ✅");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Nie udało się zapisać profilu");
+    }
   };
 
   const totalSlots = useMemo(
@@ -135,11 +176,19 @@ export default function PhotographerDashboardPage() {
     [me]
   );
 
-  if (!me) return <p>Ładowanie…</p>;
+  if (!token) return <p>Zaloguj się jako fotograf, aby zarządzać profilem.</p>;
+  if (loading) return <p>Ładowanie profilu…</p>;
+  if (!me) return error ? <p className="text-red-600">{error}</p> : <p>Brak danych profilu.</p>;
 
   return (
     <div className="space-y-8">
       <h1 className="text-2xl font-bold">Panel Fotografa</h1>
+
+      {error && (
+        <div className="rounded-lg border border-amber-300 bg-amber-50 p-3 text-sm text-amber-800">
+          {error}
+        </div>
+      )}
 
       {/* PROFIL */}
       <Section title="Mój profil">
@@ -327,7 +376,7 @@ export default function PhotographerDashboardPage() {
           <div className="md:col-span-2">
             <h3 className="text-sm font-medium mb-2">Kalendarz (przegląd)</h3>
             <div className="grid sm:grid-cols-2 gap-2">
-              {me.availability.map((d: DaySlots) => (
+              {me.availability.map((d: DayAvailability) => (
                 <div key={d.date} className="rounded-xl border p-3">
                   <div className="font-medium">{d.date}</div>
                   <div className="mt-1 flex flex-wrap gap-1 text-sm">
