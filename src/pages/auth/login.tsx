@@ -6,14 +6,34 @@ export default function LoginPage() {
   const { login } = useAuth();
   const nav = useNavigate();
   const [email, setEmail] = useState("");
-  const [role, setRole] = useState<"photographer" | "admin" | "client">("photographer");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
 
-  const submit = (e: React.FormEvent) => {
+  const submit = async (e: React.FormEvent) => {
     e.preventDefault();
-    login(email || "demo@example.com", role);
-    if (role === "photographer") nav("/dashboard/photographer");
-    else if (role === "admin") nav("/dashboard/admin");
-    else nav("/");
+    if (!email.trim() || !password.trim()) {
+      setError("Podaj e-mail oraz hasło.");
+      return;
+    }
+
+    setError(null);
+    setLoading(true);
+    try {
+      const user = await login(email.trim(), password);
+      if (user.role === "photographer") {
+        nav("/dashboard/photographer", { replace: true });
+      } else if (user.role === "admin") {
+        nav("/dashboard/admin", { replace: true });
+      } else {
+        nav("/", { replace: true });
+      }
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Nie udało się zalogować.";
+      setError(message);
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -25,21 +45,23 @@ export default function LoginPage() {
           placeholder="E-mail"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
+          autoComplete="email"
           autoFocus
         />
-        <select
+        <input
           className="w-full px-3 py-2 rounded-lg border"
-          value={role}
-          onChange={(e) => setRole(e.target.value as any)}
-        >
-          <option value="photographer">Fotograf</option>
-          <option value="admin">Admin</option>
-          <option value="client">Klient (podgląd)</option>
-        </select>
+          placeholder="Hasło"
+          type="password"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          autoComplete="current-password"
+        />
+        {error && <p className="text-sm text-red-600">{error}</p>}
         <button
-          className="w-full px-4 py-2 rounded-lg bg-blue-600 text-white font-semibold hover:bg-blue-700"
+          className="w-full px-4 py-2 rounded-lg bg-blue-600 text-white font-semibold hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+          disabled={loading}
         >
-          Zaloguj
+          {loading ? "Logowanie…" : "Zaloguj"}
         </button>
       </form>
       <p className="text-sm text-zinc-600">
@@ -51,3 +73,4 @@ export default function LoginPage() {
     </section>
   );
 }
+
