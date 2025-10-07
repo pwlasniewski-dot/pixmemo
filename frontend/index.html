@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="pl">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>PixMemo — Rezerwuj fotografa</title>
+    <link rel="manifest" href="manifest.json" />
+    <link rel="stylesheet" href="styles.css" />
+    <link rel="icon" type="image/png" href="https://fav.farm/📸" />
+  </head>
+  <body>
+    <header class="site-header">
+      <div class="container">
+        <h1>PixMemo</h1>
+        <p class="tagline">Rezerwuj fotografów w kilka minut</p>
+      </div>
+    </header>
+    <main class="container">
+      <section class="layout">
+        <aside class="list-panel">
+          <h2>Dostępni fotografowie</h2>
+          <label class="filter">
+            <span>Miasto:</span>
+            <input id="cityFilter" type="search" placeholder="np. Toruń" />
+          </label>
+          <ul id="photographerList" class="photographer-list" aria-live="polite"></ul>
+        </aside>
+        <section class="detail-panel" aria-live="polite">
+          <div id="photographerDetail" class="detail-empty">
+            <h2>Wybierz fotografa</h2>
+            <p>
+              Kliknij kartę w liście, aby zobaczyć profil, dostępne pakiety oraz kalendarz
+              terminów. Możesz natychmiast wysłać zgłoszenie rezerwacji, które zostanie
+              zapisane w systemie API.
+            </p>
+          </div>
+        </section>
+      </section>
+    </main>
+    <footer class="site-footer">
+      <div class="container">
+        <small>&copy; 2025 PixMemo. Twoje wspomnienia, nasza odpowiedzialność.</small>
+      </div>
+    </footer>
+    <script>
+      window.__PIXMEMO_PUBLIC_PATH__ = window.location.pathname.replace(/[^/]*$/, "/");
+    </script>
+    <script src="app.js" type="module"></script>
+  </body>
+</html>
