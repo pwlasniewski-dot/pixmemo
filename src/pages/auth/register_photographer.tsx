@@ -11,7 +11,7 @@ export default function RegisterPhotographerPage() {
   const [city, setCity] = useState("");
   const [email, setEmail] = useState("");
 
-  const submit = (e: React.FormEvent) => {
+  const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     // „wysyłamy do weryfikacji” – zapis w mocku admina
     createMockPhotographer({
@@ -21,9 +21,16 @@ export default function RegisterPhotographerPage() {
       verified: false,
       status: "submitted",
     });
-    // Automatycznie logujemy jako fotograf (demo)
-    login(email || "nowy@fotograf.pl", "photographer");
-    nav("/dashboard/photographer");
+    try {
+      await login({
+        email: email.trim() || "fotograf@pixmemo.pl",
+        password: "demo123",
+        role: "photographer",
+      });
+      nav("/dashboard/photographer");
+    } catch {
+      nav("/auth/login", { replace: true });
+    }
   };
 
   return (

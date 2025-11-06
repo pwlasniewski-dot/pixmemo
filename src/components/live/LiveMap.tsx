@@ -1,7 +1,4 @@
 // src/components/live/LiveMap.tsx
-import "@/lib/leaflet";
-import { MapContainer, TileLayer, Marker, Popup } from "react-leaflet";
-
 type Props = {
   lat: number;
   lng: number;
@@ -14,22 +11,20 @@ export default function LiveMap({
   lat,
   lng,
   label = "Fotograf",
-  zoom = 13,
   className = "h-[420px] w-full",
 }: Props) {
-  const center: [number, number] = [lat, lng];
-
   return (
-    <div className={`rounded-2xl overflow-hidden border ${className}`}>
-      <MapContainer center={center} zoom={zoom} scrollWheelZoom className="h-full w-full">
-        <TileLayer
-          attribution="&copy; OpenStreetMap"
-          url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-        />
-        <Marker position={center}>
-          <Popup>{label}</Popup>
-        </Marker>
-      </MapContainer>
+    <div
+      className={`rounded-2xl border bg-slate-50 flex flex-col items-center justify-center text-center ${className}`}
+    >
+      <div className="text-lg font-semibold text-slate-700">{label}</div>
+      <p className="text-sm text-zinc-600">
+        Szerokość: <b>{lat.toFixed(4)}</b> · Długość: <b>{lng.toFixed(4)}</b>
+      </p>
+      <p className="text-xs text-zinc-500 mt-2 px-6">
+        Podgląd mapy jest niedostępny w tym środowisku. W aplikacji produkcyjnej w tym miejscu pojawia się mapa
+        OpenStreetMap z aktualną pozycją fotografa.
+      </p>
     </div>
   );
 }
