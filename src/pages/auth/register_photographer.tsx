@@ -5,7 +5,7 @@ import { useAuth } from "@/hooks/useAuth";
 
 export default function RegisterPhotographerPage() {
   const nav = useNavigate();
-  const { login } = useAuth();
+  const { loginDemo } = useAuth();
 
   const [fullName, setFullName] = useState("");
   const [city, setCity] = useState("");
@@ -22,7 +22,7 @@ export default function RegisterPhotographerPage() {
       status: "submitted",
     });
     // Automatycznie logujemy jako fotograf (demo)
-    login(email || "nowy@fotograf.pl", "photographer");
+    loginDemo(email || "nowy@fotograf.pl", "photographer");
     nav("/dashboard/photographer");
   };
 
